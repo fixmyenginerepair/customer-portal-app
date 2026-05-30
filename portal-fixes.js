@@ -655,3 +655,41 @@ document.addEventListener('DOMContentLoaded', function () {
     },300);
   }
 })();
+
+// == FIX: hook renderView for appointments + fix nav click ==
+(function(){
+  // Patch renderView (the function admin actually uses)
+  var _origRV=window.renderView;
+  window.renderView=function(view){
+    if(view==='appointments'){
+      var el=document.getElementById('main-content');
+      if(typeof renderAdminAppointments==='function')renderAdminAppointments(el);
+      return;
+    }
+    if(_origRV)_origRV.call(this,view);
+  };
+
+  // Fix the nav item click to use renderView + active state correctly
+  function rewireApptNav(){
+    var item=document.querySelector('[data-view="appointments"]');
+    if(!item||item.dataset.rvwired)return;
+    item.dataset.rvwired='1';
+    // Remove old listeners by cloning
+    var fresh=item.cloneNode(true);
+    fresh.dataset.rvwired='1';
+    fresh.addEventListener('click',function(){
+      document.querySelectorAll('#nav-links-n4v1 .nav-item').forEach(function(n){n.classList.remove('active');});
+      fresh.classList.add('active');
+      currentView='appointments';
+      filterCustomerId=null;
+      renderView('appointments');
+      if(typeof closeMobileSidebar==='function')closeMobileSidebar();
+    });
+    item.parentNode.replaceChild(fresh,item);
+  }
+
+  var tries=0,iv2=setInterval(function(){
+    rewireApptNav();
+    if(++tries>20)clearInterval(iv2);
+  },300);
+})();
