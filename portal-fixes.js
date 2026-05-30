@@ -302,3 +302,139 @@ document.addEventListener('DOMContentLoaded', function () {
     },60);
   };
 })();
+
+// == CUSTOMER APPOINTMENT TAB + CONFIRM BUTTON ==
+(function(){
+
+  function apptStatusBadge(s){
+    var m={
+      pending:['Pending','#fef3c7','#d97706'],
+      confirmed:['Confirmed','#dcfce7','#1B4D2A'],
+      cancelled:['Cancelled','#fee2e2','#dc2626'],
+      completed:['Completed','#f2f6f2','#5a7a5a']
+    };
+    var x=m[s]||m.pending;
+    return '<span style="background:'+x[1]+';color:'+x[2]+';padding:3px 10px;border-radius:20px;'+
+      'font-size:11px;font-weight:700;">'+x[0]+'</span>';
+  }
+
+  function formatApptDate(d,t){
+    if(!d)return'';
+    var parts=d.split('-');
+    if(parts.length<3)return d;
+    var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var str=months[parseInt(parts[1],10)-1]+' '+parseInt(parts[2],10)+', '+parts[0];
+    if(t){
+      var tp=t.split(':');
+      var h=parseInt(tp[0],10),m=tp[1],ampm=h>=12?'PM':'AM';
+      h=h%12||12;
+      str+=' at '+h+':'+m+' '+ampm;
+    }
+    return str;
+  }
+
+  // Inject Appointments tab into portal tab bar
+  var _origInitCP2=window.initCustomerPortal;
+  window.initCustomerPortal=function(session){
+    if(_origInitCP2)_origInitCP2.call(this,session);
+    setTimeout(function(){
+      var tabBar=document.getElementById('cp-tab-bar-t1');
+      if(!tabBar||tabBar.querySelector('[data-ctab="appointments"]'))return;
+      // Insert after repairs tab
+      var repairsTab=tabBar.querySelector('[data-ctab="repairs"]');
+      var btn=document.createElement('button');
+      btn.className='customer-tab';
+      btn.setAttribute('data-ctab','appointments');
+      btn.innerHTML='&#x1F4C5; Appointments';
+      if(repairsTab&&repairsTab.nextSibling){
+        tabBar.insertBefore(btn,repairsTab.nextSibling);
+      } else {
+        tabBar.appendChild(btn);
+      }
+      btn.addEventListener('click',function(){
+        tabBar.querySelectorAll('.customer-tab').forEach(function(t){t.classList.remove('active');});
+        btn.classList.add('active');
+        window.renderCustomerTab('appointments',session);
+      });
+    },0);
+  };
+
+  // Render appointments tab
+  var _origRCT3=window.renderCustomerTab;
+  window.renderCustomerTab=function(tab,session){
+    if(tab!=='appointments'){return _origRCT3.apply(this,arguments);}
+    var el=document.getElementById('cp-content-area-c1');
+    if(!el)return;
+    var cid=session.customerId;
+    var custAppts=(typeof appointments!=='undefined'?appointments:[])
+      .filter(function(a){return a&&a.customerId===cid;})
+      .sort(function(a,b){return(a.date+a.time)<(b.date+b.time)?-1:1;});
+
+    if(custAppts.length===0){
+      el.innerHTML='<div class="stat-card"><div class="empty-state">'+
+        '<p style="font-size:40px;margin:0 0 8px;">&#x1F4C5;</p>'+
+        '<p style="font-size:16px;font-weight:600;color:var(--text-primary);margin:0 0 4px;">No appointments scheduled</p>'+
+        '<p style="font-size:13px;color:var(--text-muted);margin:0;">We\'ll schedule your next appointment soon.</p>'+
+        '</div></div>';
+      return;
+    }
+
+    el.innerHTML=custAppts.map(function(a){
+      var isConfirmed=a.status==='confirmed';
+      var custConfirmed=a.customerConfirmed;
+      var bc=a.status==='confirmed'?'#8DC63F':a.status==='cancelled'?'#dc2626':'#F47920';
+
+      // Confirm button or confirmation status
+      var confirmSection='';
+      if(a.status==='cancelled'){
+        confirmSection='<div style="margin-top:12px;padding:10px 14px;background:#fee2e2;border-radius:8px;'+
+          'font-size:13px;color:#dc2626;font-weight:600;">&#x26A0;&#xFE0F; This appointment has been cancelled.</div>';
+      } else if(a.status==='completed'){
+        confirmSection='<div style="margin-top:12px;padding:10px 14px;background:#f2f6f2;border-radius:8px;'+
+          'font-size:13px;color:#5a7a5a;font-weight:600;">&#x2714;&#xFE0F; Appointment completed.</div>';
+      } else if(isConfirmed&&!custConfirmed){
+        confirmSection='<div style="margin-top:12px;padding:14px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);'+
+          'border-radius:10px;border:1px solid #86efac;">'+
+          '<p style="font-size:13px;font-weight:700;color:#1B4D2A;margin:0 0 10px;">&#x1F514; Please confirm your appointment</p>'+
+          '<button onclick="customerConfirmAppt(\''+a.id+'\',\''+cid+'\',\''+session.customerName+'\')" '+
+          'style="background:#1B4D2A;color:white;border:none;border-radius:10px;padding:11px 22px;'+
+          'font-size:13px;font-weight:700;cursor:pointer;width:100%;">&#x2713; Confirm My Appointment</button></div>';
+      } else if(custConfirmed){
+        confirmSection='<div style="margin-top:12px;padding:10px 14px;background:#dcfce7;border-radius:8px;'+
+          'display:flex;align-items:center;gap:8px;">'+
+          '<span style="font-size:18px;">&#x2705;</span>'+
+          '<span style="font-size:13px;font-weight:700;color:#1B4D2A;">You confirmed this appointment</span></div>';
+      } else {
+        confirmSection='<div style="margin-top:12px;padding:10px 14px;background:#fef3c7;border-radius:8px;'+
+          'font-size:13px;color:#d97706;font-weight:600;">&#x23F3; Awaiting confirmation from our team</div>';
+      }
+
+      return '<div class="stat-card" style="margin-bottom:14px;border-left:4px solid '+bc+';">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'+
+        '<div style="font-weight:700;font-size:15px;color:var(--text-primary);">'+a.title+'</div>'+
+        apptStatusBadge(a.status)+'</div>'+
+        '<div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">&#x1F4C5; '+formatApptDate(a.date,a.time)+'</div>'+
+        '<div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">&#x23F1;&#xFE0F; '+a.duration+' min &nbsp;&#x00B7;&nbsp; '+
+        (a.type?a.type.charAt(0).toUpperCase()+a.type.slice(1):'')+'</div>'+
+        (a.notes?'<div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">&#x1F4DD; '+a.notes+'</div>':'')+
+        confirmSection+'</div>';
+    }).join('');
+  };
+
+  // Global confirm handler
+  window.customerConfirmAppt=function(apptId,custId,custName){
+    var appt=(typeof appointments!=='undefined'?appointments:[]).find(function(a){return a.id===apptId;});
+    if(!appt)return;
+    appt.customerConfirmed=true;
+    if(typeof saveAppointments==='function')saveAppointments();
+    if(typeof addAdminAlert==='function')
+      addAdminAlert('appointment_confirmed',
+        (custName||'Customer')+' confirmed: '+appt.title+' on '+appt.date,
+        custId,custName);
+    // Refresh the tab
+    var session={customerId:custId,customerName:custName};
+    window.renderCustomerTab('appointments',session);
+    if(typeof showToast==='function')showToast('Appointment confirmed! We\'ll see you then.','success');
+  };
+
+})();
