@@ -243,3 +243,62 @@ document.addEventListener('DOMContentLoaded', function () {
     window.saveAll = async function(){ fixPPLinks(); return await _origSave.apply(this, arguments); };
   }
 })();
+
+// == REPAIR PROGRESS TRACKER ==
+(function(){
+  function repairStep(status){
+    var s=(status||'').toLowerCase().replace(/[\s_]/g,'-');
+    if(['completed','complete','finished','closed','picked-up','delivered'].indexOf(s)!==-1)return 4;
+    if(['ready','ready-pickup','waiting','awaiting-pickup','ready-for-pickup'].indexOf(s)!==-1)return 3;
+    if(['in-progress','working','diagnosing','repairing','active','in-repair'].indexOf(s)!==-1)return 2;
+    return 1;
+  }
+  function progressBar(status){
+    var step=repairStep(status);
+    var labels=['Received','In Progress','Ready','Completed'];
+    var circles='<div style="display:flex;align-items:center;">';
+    labels.forEach(function(lbl,i){
+      var n=i+1,done=step>n,active=step===n;
+      var bg=done?'#8DC63F':active?'#1B4D2A':'#edf4ed';
+      var bc=done||active?'#8DC63F':'#d4e6d4';
+      var tc=done||active?'#fff':'#b0c8b0';
+      circles+='<div style="width:28px;height:28px;border-radius:50%;background:'+bg+';border:2px solid '+bc+
+        ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:'+tc+
+        ';flex-shrink:0;box-shadow:'+(active?'0 0 0 3px rgba(141,198,63,0.3)':'none')+';">'+(done?'&#10003;':n)+'</div>';
+      if(i<labels.length-1)
+        circles+='<div style="flex:1;height:3px;background:'+(done?'#8DC63F':'#d4e6d4')+
+          ';margin:0 2px;border-radius:2px;"></div>';
+    });
+    circles+='</div>';
+    var lbls='<div style="display:flex;margin-top:6px;">';
+    labels.forEach(function(lbl,i){
+      var n=i+1,done=step>n,active=step===n;
+      var tc=done||active?'#1B4D2A':'#b0c8b0';
+      var fw=active?'700':'500';
+      lbls+='<div style="flex:1;font-size:9px;font-weight:'+fw+';color:'+tc+
+        ';text-align:center;line-height:1.2;">'+lbl+'</div>';
+    });
+    lbls+='</div>';
+    return '<div style="background:#f4fbf4;border-radius:10px;padding:14px 12px 10px;'+
+      'margin-bottom:12px;border:1px solid #d4e6d4;">'+circles+lbls+'</div>';
+  }
+  var _prev=window.renderCustomerTab;
+  window.renderCustomerTab=function(tab,session){
+    _prev.apply(this,arguments);
+    if(tab!=='repairs')return;
+    setTimeout(function(){
+      var area=document.getElementById('cp-content-area-c1');
+      if(!area)return;
+      var cards=area.querySelectorAll('.stat-card');
+      if(!cards.length)return;
+      var cid=session.customerId;
+      var repList=(typeof repairs!=='undefined'?repairs:[]).filter(function(r){return r&&r.customerId===cid;});
+      repList.forEach(function(rep,idx){
+        var card=cards[idx];
+        if(!card||card.dataset.ptAdded)return;
+        card.dataset.ptAdded='1';
+        card.insertAdjacentHTML('afterbegin',progressBar(rep.status));
+      });
+    },60);
+  };
+})();
