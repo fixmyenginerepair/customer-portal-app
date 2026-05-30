@@ -165,3 +165,57 @@ document.addEventListener('DOMContentLoaded', function () {
   })(window.renderCustomerTab);
 
 });
+
+// ══ PAYPAL PLAIN-PASTE FIX ══
+(function() {
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    // Invoice form: intercept Generate Link button
+    if (t && t.id === 'if-gen-paypal') {
+      e.stopImmediatePropagation();
+      var inp = document.getElementById('if-paypal-p1f2');
+      var url = inp ? inp.value.trim() : '';
+      if (!url) { if (typeof showToast==='function') showToast('Paste your PayPal invoice URL first.','error'); return; }
+      var r = document.getElementById('if-paypal-result');
+      if (r) r.innerHTML = '<div style="margin-top:8px;"><a href="'+url+'" target="_blank" style="color:#1B4D2A;word-break:break-all;font-size:13px;">'+url+'</a></div>';
+      if (typeof showToast==='function') showToast('PayPal link ready — save the invoice to keep it.','success');
+      return;
+    }
+    // Invoice detail modal: intercept Generate Link button
+    if (t && t.id === 'pp-generate') {
+      e.stopImmediatePropagation();
+      var inp2 = document.getElementById('pp-email-p1m2');
+      var url2 = inp2 ? inp2.value.trim() : '';
+      if (!url2) { if (typeof showToast==='function') showToast('Paste your PayPal invoice URL first.','error'); return; }
+      if (typeof invoices !== 'undefined') {
+        var visible = document.body.innerText || '';
+        var inv = (invoices||[]).find(function(i){return i&&i.invoiceNumber&&visible.includes(i.invoiceNumber);});
+        if (inv) { inv.paypalLink=url2; inv.paypalEmail=url2; if(typeof saveAll==='function') saveAll(); }
+      }
+      var rEl = document.getElementById('pp-result-r1m2');
+      if (rEl) rEl.innerHTML = '<div class="paypal-link-box" style="margin-top:16px;"><a href="'+url2+'" target="_blank">'+url2+'</a></div>';
+      if (typeof showToast==='function') showToast('PayPal link saved!','success');
+      return;
+    }
+  }, true);
+  // Relabel fields via MutationObserver
+  var obs = new MutationObserver(function() {
+    var b = document.getElementById('if-gen-paypal');
+    if (b && !b.dataset.ppfixed) {
+      b.dataset.ppfixed='1'; b.textContent='Save PayPal Link';
+      var inp=document.getElementById('if-paypal-p1f2');
+      if(inp){inp.placeholder='https://www.paypal.com/invoice/p/#...';}
+      var lbl=inp&&inp.closest('div')&&inp.closest('div').querySelector('label');
+      if(lbl)lbl.textContent='PayPal Invoice Link (paste from PayPal)';
+    }
+    var b2=document.getElementById('pp-generate');
+    if(b2&&!b2.dataset.ppfixed){b2.dataset.ppfixed='1';b2.textContent='Save Link';}
+    var p=document.getElementById('pp-email-p1m2');
+    if(p&&!p.dataset.ppfixed){
+      p.dataset.ppfixed='1';p.placeholder='https://www.paypal.com/invoice/p/#...';
+      var lbl2=p.closest('div')&&p.closest('div').querySelector('label');
+      if(lbl2)lbl2.textContent='PayPal Invoice Link (paste from PayPal)';
+    }
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+})();
