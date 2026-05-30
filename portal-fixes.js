@@ -545,3 +545,66 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
 })();
+
+// == ADMIN APPOINTMENTS FINAL ==
+(function(){
+  window.renderAdminAppointments=function(el){
+    if(!el)el=document.getElementById('main-content');
+    if(!el)return;
+    var all=(typeof appointments!=='undefined'?appointments:[]).sort(function(a,b){return(a.date+a.time)<(b.date+b.time)?-1:1;});
+    function cn(id){var c=(typeof customers!=='undefined'?customers:[]).find(function(x){return x&&x.id===id;});return c?c.name:'Unknown';}
+    function bdg(s){var m={pending:['Pending','#fef3c7','#d97706'],confirmed:['Confirmed','#dcfce7','#1B4D2A'],cancelled:['Cancelled','#fee2e2','#dc2626'],completed:['Completed','#f2f6f2','#5a7a5a']};var x=m[s]||m.pending;return'<span style="background:'+x[1]+';color:'+x[2]+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">'+x[0]+'</span>';}
+    function fdt(d,t){if(!d)return'—';var p=d.split('-'),mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],s=mo[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0];if(t){var tp=t.split(':'),h=parseInt(tp[0],10),mn=tp[1],ap=h>=12?'PM':'AM';h=h%12||12;s+=' · '+h+':'+mn+' '+ap;}return s;}
+    var td=new Date().toISOString().slice(0,10);
+    var tot=all.length,todc=all.filter(function(a){return a.date===td;}).length,confc=all.filter(function(a){return a.status==='confirmed';}).length,penc=all.filter(function(a){return a.status==='pending';}).length;
+    el.innerHTML='<h2 style="font-size:20px;font-weight:800;color:#1B4D2A;margin:0 0 4px;">&#x1F4C5; Appointments</h2>'+
+      '<p style="font-size:13px;color:#5a7a5a;margin:0 0 18px;">All scheduled appointments</p>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">'+
+      '<div class="stat-card" style="text-align:center;padding:16px;"><div style="font-size:28px;font-weight:800;color:#1B4D2A;">'+tot+'</div><div style="font-size:11px;color:#5a7a5a;font-weight:600;text-transform:uppercase;">Total</div></div>'+
+      '<div class="stat-card" style="text-align:center;padding:16px;"><div style="font-size:28px;font-weight:800;color:#F47920;">'+todc+'</div><div style="font-size:11px;color:#5a7a5a;font-weight:600;text-transform:uppercase;">Today</div></div>'+
+      '<div class="stat-card" style="text-align:center;padding:16px;"><div style="font-size:28px;font-weight:800;color:#8DC63F;">'+confc+'</div><div style="font-size:11px;color:#5a7a5a;font-weight:600;text-transform:uppercase;">Confirmed</div></div>'+
+      '<div class="stat-card" style="text-align:center;padding:16px;"><div style="font-size:28px;font-weight:800;color:#d97706;">'+penc+'</div><div style="font-size:11px;color:#5a7a5a;font-weight:600;text-transform:uppercase;">Pending</div></div>'+
+      '</div>'+
+      (tot===0?'<div class="stat-card" style="text-align:center;padding:60px;"><div style="font-size:48px;">&#x1F4C5;</div><p style="font-weight:600;">No appointments yet.</p><p style="font-size:13px;color:#5a7a5a;">Open a customer record to schedule one.</p></div>':
+      all.map(function(a){
+        var bc=a.status==='confirmed'?'#8DC63F':a.status==='cancelled'?'#dc2626':a.status==='completed'?'#5a7a5a':'#F47920';
+        var it=a.date===td;
+        return'<div class="stat-card" style="margin-bottom:10px;border-left:4px solid '+bc+';'+(it?'background:linear-gradient(135deg,#f8fff8,#f0fdf4);':'')+'">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+          '<div style="flex:1;">'+
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'+
+          '<b style="font-size:14px;color:#1B4D2A;">'+a.title+'</b>'+(it?'<span style="background:#8DC63F;color:#1B4D2A;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">TODAY</span>':'')+bdg(a.status)+'</div>'+
+          '<div style="font-size:13px;color:#5a7a5a;margin-bottom:2px;">&#x1F464; <b>'+cn(a.customerId)+'</b></div>'+
+          '<div style="font-size:13px;color:#5a7a5a;margin-bottom:2px;">&#x1F4C5; '+fdt(a.date,a.time)+(a.duration?' &middot; &#x23F1; '+a.duration+' min':'')+'</div>'+
+          (a.notes?'<div style="font-size:12px;color:#5a7a5a;">&#x1F4DD; '+a.notes+'</div>':'')+
+          '<div style="margin-top:6px;">'+(a.customerConfirmed?'<span style="font-size:11px;color:#1B4D2A;font-weight:700;background:#dcfce7;padding:3px 10px;border-radius:20px;">&#x2705; Customer confirmed</span>':'<span style="font-size:11px;color:#d97706;">&#x23F3; Awaiting confirmation</span>')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:6px;flex-shrink:0;">'+
+          '<button onclick="if(typeof openApptModal===\'function\')openApptModal(\''+a.customerId+'\',\''+a.id+'\')" style="background:white;border:1px solid #d4e6d4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#1B4D2A;">Edit</button>'+
+          '<button onclick="if(!confirm(\'Delete?\'))return;if(typeof appointments!==\'undefined\'){appointments=appointments.filter(function(x){return x.id!==\''+a.id+'\';});}if(typeof saveAppointments===\'function\')saveAppointments();window.renderAdminAppointments();" style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;color:#dc2626;">&#x2715;</button>'+
+          '</div></div></div>';
+      }).join(''))
+  };
+
+  // Inject nav using polling — no event listener needed
+  function tryInject(){
+    var nav=document.getElementById('nav-links-n4v1');
+    if(!nav)return false;
+    if(nav.querySelector('[data-view="appointments"]'))return true;
+    var ref=nav.querySelector('[data-view="settings"]');
+    if(!ref)return false;
+    var d=document.createElement('div');
+    d.className='nav-item';
+    d.setAttribute('data-view','appointments');
+    d.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Appointments';
+    d.addEventListener('click',function(){
+      if(typeof currentView!=='undefined')currentView='appointments';
+      document.querySelectorAll('#nav-links-n4v1 .nav-item').forEach(function(i){i.classList.remove('active');});
+      d.classList.add('active');
+      window.renderAdminAppointments(document.getElementById('main-content'));
+    });
+    nav.insertBefore(d,ref);
+    return true;
+  }
+  if(!tryInject()){var t=0,iv=setInterval(function(){if(tryInject()||++t>30)clearInterval(iv);},200);}
+})();
