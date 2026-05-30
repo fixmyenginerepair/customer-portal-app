@@ -438,3 +438,181 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
 })();
+
+// == ADMIN APPOINTMENTS PAGE ==
+(function(){
+
+  function renderAdminAppointments(el){
+    if(!el)el=document.getElementById('main-content');
+    if(!el)return;
+
+    var allAppts=(typeof appointments!=='undefined'?appointments:[])
+      .sort(function(a,b){return(a.date+a.time)<(b.date+b.time)?-1:1;});
+
+    function custName(cid){
+      var c=(typeof customers!=='undefined'?customers:[]).find(function(x){return x&&x.id===cid;});
+      return c?c.name:'Unknown';
+    }
+
+    function sBadge(s){
+      var m={pending:['Pending','#fef3c7','#d97706'],confirmed:['Confirmed','#dcfce7','#1B4D2A'],
+             cancelled:['Cancelled','#fee2e2','#dc2626'],completed:['Completed','#f2f6f2','#5a7a5a']};
+      var x=m[s]||m.pending;
+      return '<span style="background:'+x[1]+';color:'+x[2]+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">'+x[0]+'</span>';
+    }
+
+    function fmtDt(d,t){
+      if(!d)return'—';
+      var p=d.split('-'),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var s=months[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0];
+      if(t){var tp=t.split(':'),h=parseInt(tp[0],10),mn=tp[1],ap=h>=12?'PM':'AM';h=h%12||12;s+=' · '+h+':'+mn+' '+ap;}
+      return s;
+    }
+
+    // Stats
+    var total=allAppts.length;
+    var pending=allAppts.filter(function(a){return a.status==='pending';}).length;
+    var confirmed=allAppts.filter(function(a){return a.status==='confirmed';}).length;
+    var today=new Date().toISOString().slice(0,10);
+    var todayAppts=allAppts.filter(function(a){return a.date===today;}).length;
+
+    el.innerHTML=
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">'+
+      '<div><h2 style="font-size:20px;font-weight:800;color:#1B4D2A;margin:0;">&#x1F4C5; Appointments</h2>'+
+      '<div style="font-size:13px;color:#5a7a5a;">All scheduled appointments</div></div>'+
+      '<button onclick="openApptModalAdmin(null,null)" style="background:#8DC63F;color:#1B4D2A;border:none;border-radius:10px;'+
+      'padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">+ New Appointment</button></div>'+
+
+      // Stats row
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">'+
+      '<div class="stat-card" style="text-align:center;padding:16px;">'+
+      '<div style="font-size:26px;font-weight:800;color:#1B4D2A;">'+total+'</div>'+
+      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Total</div></div>'+
+      '<div class="stat-card" style="text-align:center;padding:16px;">'+
+      '<div style="font-size:26px;font-weight:800;color:#F47920;">'+todayAppts+'</div>'+
+      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Today</div></div>'+
+      '<div class="stat-card" style="text-align:center;padding:16px;">'+
+      '<div style="font-size:26px;font-weight:800;color:#8DC63F;">'+confirmed+'</div>'+
+      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Confirmed</div></div>'+
+      '<div class="stat-card" style="text-align:center;padding:16px;">'+
+      '<div style="font-size:26px;font-weight:800;color:#d97706;">'+pending+'</div>'+
+      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Pending</div></div>'+
+      '</div>'+
+
+      // Appointment list
+      (allAppts.length===0?
+        '<div style="text-align:center;padding:60px 20px;color:#5a7a5a;">'+
+        '<div style="font-size:48px;">&#x1F4C5;</div>'+
+        '<p style="font-weight:600;">No appointments yet.</p>'+
+        '<p style="font-size:13px;">Click "+ New Appointment" to schedule one.</p></div>':
+        allAppts.map(function(a){
+          var bc=a.status==='confirmed'?'#8DC63F':a.status==='cancelled'?'#dc2626':a.status==='completed'?'#d4e6d4':'#F47920';
+          var isToday=a.date===today;
+          return '<div class="stat-card" style="margin-bottom:10px;border-left:4px solid '+bc+';'+
+            (isToday?'background:linear-gradient(135deg,#f8fff8,#f0fdf4);':'')+'">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'+
+            '<div style="flex:1;">'+
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'+
+            '<span style="font-weight:700;font-size:14px;color:#1B4D2A;">'+a.title+'</span>'+
+            (isToday?'<span style="background:#8DC63F;color:#1B4D2A;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">TODAY</span>':'')+
+            sBadge(a.status)+'</div>'+
+            '<div style="font-size:13px;color:#5a7a5a;margin-bottom:3px;">&#x1F464; <strong>'+custName(a.customerId)+'</strong></div>'+
+            '<div style="font-size:13px;color:#5a7a5a;margin-bottom:3px;">&#x1F4C5; '+fmtDt(a.date,a.time)+' &nbsp;·&nbsp; &#x23F1;&#xFE0F; '+a.duration+' min &nbsp;·&nbsp; '+
+            (a.type?a.type.charAt(0).toUpperCase()+a.type.slice(1):'')+'</div>'+
+            (a.notes?'<div style="font-size:12px;color:#5a7a5a;">&#x1F4DD; '+a.notes+'</div>':'')+
+            '<div style="margin-top:6px;">'+
+            (a.customerConfirmed?
+              '<span style="font-size:11px;color:#1B4D2A;font-weight:700;background:#dcfce7;padding:3px 10px;border-radius:20px;">&#x2705; Customer confirmed</span>':
+              '<span style="font-size:11px;color:#d97706;font-weight:600;">&#x23F3; Awaiting customer confirmation</span>')+
+            '</div></div>'+
+            '<div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0;">'+
+            '<button onclick="openApptModalAdmin(\''+a.customerId+'\',\''+a.id+'\')" '+
+            'style="background:white;border:1px solid #d4e6d4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#1B4D2A;">Edit</button>'+
+            '<button onclick="delApptAdmin(\''+a.id+'\')" '+
+            'style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;color:#dc2626;">&#x2715;</button>'+
+            '</div></div></div>';
+        }).join('')
+      );
+    window._drawAdminAppts=function(){renderAdminAppointments(el);};
+  }
+
+  window.openApptModalAdmin=function(custId,apptId){
+    // If custId provided use existing openApptModal, else show customer picker first
+    if(custId){
+      if(typeof openApptModal==='function')openApptModal(custId,apptId);
+      // After save, refresh admin appts view
+      setTimeout(function(){
+        var origSave=document.getElementById('am-save');
+        if(origSave&&!origSave.dataset.adminHooked){
+          origSave.dataset.adminHooked='1';
+          origSave.addEventListener('click',function(){
+            setTimeout(function(){if(window._drawAdminAppts)window._drawAdminAppts();},200);
+          });
+        }
+      },100);
+      return;
+    }
+    // No custId — show customer picker modal
+    var modal=document.getElementById('global-modal');if(!modal)return;
+    var custs=(typeof customers!=='undefined'?customers:[]).filter(function(c){return c&&c.name;});
+    modal.innerHTML='<div style="background:white;border-radius:20px;padding:28px;max-width:380px;width:100%;'+
+      'max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">'+
+      '<h3 style="font-weight:800;font-size:18px;color:#1B4D2A;margin:0;">Select Customer</h3>'+
+      '<button onclick="closeModal()" style="background:#f2f6f2;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;">&#x2715;</button></div>'+
+      (custs.length===0?'<p style="color:#5a7a5a;">No customers yet. Add a customer first.</p>':
+      custs.map(function(c){
+        return '<div onclick="closeModal();openApptModalAdmin(\''+c.id+'\',null);" '+
+          'style="padding:12px 14px;border-radius:10px;border:1px solid #d4e6d4;margin-bottom:8px;cursor:pointer;'+
+          'display:flex;align-items:center;gap:10px;transition:background 0.15s;" '+
+          'onmouseover="this.style.background=\'#f0fdf4\'" onmouseout="this.style.background=\'white\'">'+
+          '<span style="font-size:22px;">&#x1F464;</span>'+
+          '<div><div style="font-weight:700;font-size:14px;color:#1B4D2A;">'+c.name+'</div>'+
+          (c.email?'<div style="font-size:12px;color:#5a7a5a;">'+c.email+'</div>':'')+
+          '</div></div>';
+      }).join(''))+
+      '</div>';
+    modal.style.display='flex';
+  };
+
+  window.delApptAdmin=function(id){
+    if(!confirm('Delete this appointment?'))return;
+    if(typeof appointments!=='undefined')
+      appointments=appointments.filter(function(a){return a.id!==id;});
+    if(typeof saveAppointments==='function')saveAppointments();
+    if(window._drawAdminAppts)window._drawAdminAppts();
+    if(typeof showToast==='function')showToast('Appointment deleted.','success');
+  };
+
+  // Inject into showView
+  var _origSV2=window.showView;
+  window.showView=function(v){
+    if(v==='appointments'){
+      var el=document.getElementById('main-content');
+      if(el)renderAdminAppointments(el);
+      document.querySelectorAll('.nav-item').forEach(function(n){n.classList.toggle('active',n.dataset.view===v);});
+      document.querySelectorAll('.mob-nav-btn').forEach(function(n){n.classList.toggle('active',n.dataset.view===v);});
+      return;
+    }
+    if(_origSV2)_origSV2.call(this,v);
+  };
+
+  // Inject sidebar nav item after Resources
+  document.addEventListener('DOMContentLoaded',function(){
+    setTimeout(function(){
+      var nav=document.querySelector('.sidebar-nav,#sidebar-nav,nav ul,aside ul');
+      if(!nav||nav.querySelector('[data-view="appointments"]'))return;
+      var resLi=nav.querySelector('[data-view="resources"]');
+      var refLi=resLi||nav.querySelector('[data-view="settings"]');
+      if(!refLi)return;
+      var li=document.createElement('li');
+      li.className=refLi.className;
+      li.dataset.view='appointments';
+      li.innerHTML='<span style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;cursor:pointer;" '+
+        'onclick="showView(\'appointments\')">&#x1F4C5; <span>Appointments</span></span>';
+      li.onclick=function(){showView('appointments');};
+      nav.insertBefore(li,resLi?resLi.nextSibling:refLi);
+    },300);
+  });
+
+})();
