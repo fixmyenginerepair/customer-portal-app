@@ -219,3 +219,27 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   obs.observe(document.body,{childList:true,subtree:true});
 })();
+
+// == PAYPAL SAVE FIX: strip dollar amount before persisting ==
+(function(){
+  function fixPPLinks(){
+    if(typeof invoices==='undefined')return;
+    invoices.forEach(function(inv){
+      if(!inv)return;
+      // If paypalEmail is a full URL the user pasted, use it directly as the link
+      if(inv.paypalEmail && /^https?:\/\//.test(inv.paypalEmail)){
+        inv.paypalLink = inv.paypalEmail;
+        return;
+      }
+      // If paypalLink has a URL embedded inside a paypalme/ path (e.g. paypalme/https://paypal.com/invoice/p/#.../150.00)
+      if(inv.paypalLink && /paypalme\/https?:\/\//.test(inv.paypalLink)){
+        var m = inv.paypalLink.match(/paypalme\/(https?:\/\/.+?)(?:\/[\d]+\.[\d]{2})?$/);
+        if(m) inv.paypalLink = m[1];
+      }
+    });
+  }
+  var _origSave = window.saveAll;
+  if(typeof _origSave === 'function'){
+    window.saveAll = async function(){ fixPPLinks(); return await _origSave.apply(this, arguments); };
+  }
+})();
