@@ -616,3 +616,42 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
 })();
+
+// == APPOINTMENTS NAV INJECTION FIX (retry loop) ==
+(function(){
+  function injectApptNav(){
+    // Try every known sidebar selector
+    var nav=document.querySelector('#nav-links-n4v1')||
+            document.querySelector('.sidebar-nav')||
+            document.querySelector('#sidebar-nav')||
+            document.querySelector('nav ul')||
+            document.querySelector('aside ul');
+    if(!nav)return false;
+    if(nav.querySelector('[data-view="appointments"]'))return true;
+    var refLi=nav.querySelector('[data-view="resources"]')||
+               nav.querySelector('[data-view="alerts"]')||
+               nav.querySelector('[data-view="settings"]');
+    if(!refLi)return false;
+    var li=document.createElement('li');
+    li.className=refLi.className;
+    li.dataset.view='appointments';
+    li.style.cssText=refLi.style.cssText;
+    li.innerHTML='<span style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;cursor:pointer;">'+
+      '&#x1F4C5; <span>Appointments</span></span>';
+    li.addEventListener('click',function(){showView('appointments');});
+    var resources=nav.querySelector('[data-view="resources"]');
+    if(resources&&resources.nextSibling){
+      nav.insertBefore(li,resources.nextSibling);
+    } else {
+      nav.insertBefore(li,refLi);
+    }
+    console.log('[FIXport] Appointments nav injected.');
+    return true;
+  }
+  // Try immediately, then retry every 300ms up to 5 seconds
+  if(!injectApptNav()){
+    var tries=0,iv=setInterval(function(){
+      if(injectApptNav()||++tries>16)clearInterval(iv);
+    },300);
+  }
+})();
