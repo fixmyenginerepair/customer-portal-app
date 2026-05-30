@@ -1,9 +1,9 @@
-// portal-fixes.js — FIXport: Equipment Tab + Site Backup + PayPal plain-paste
+﻿// portal-fixes.js â€” FIXport: Equipment Tab + Site Backup + PayPal plain-paste
 document.addEventListener('DOMContentLoaded', function () {
 
-  /* ═══════════════════════════════════════════════════
-     FIX 1 — EQUIPMENT TAB IN CUSTOMER PORTAL
-  ══════════════════════════════════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     FIX 1 â€” EQUIPMENT TAB IN CUSTOMER PORTAL
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
   var _origInitCP = window.initCustomerPortal;
   window.initCustomerPortal = function (session) {
@@ -71,9 +71,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') lucide.createIcons();
   };
 
-  /* ═══════════════════════════════════════════════════
-     FIX 2 — SITE BACKUP (Export & Import)
-  ══════════════════════════════════════════════════ */
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     FIX 2 â€” SITE BACKUP (Export & Import)
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
   var BACKUP_KEYS = ['customers','invoices','repairs','parts','fme_settings',
                      'resources','appointments','fme_alerts'];
@@ -141,19 +141,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 50);
   };
 
-  /* ═══════════════════════════════════════════════════
-     FIX 3 — PAYPAL: strip dollar from payment tab button
+  /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     FIX 3 â€” PAYPAL: strip dollar from payment tab button
      (The per-invoice Pay Now button already uses the link as-is)
-  ══════════════════════════════════════════════════ */
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
   // Payment tab "Pay Now" button already uses inv.paypalLink as a plain href (line 752).
   // The only place dollar amount appears in button text is the Payment tab summary.
-  // This patch changes "Pay $X.XX Now" → "Pay Now via PayPal" on that tab.
+  // This patch changes "Pay $X.XX Now" â†’ "Pay Now via PayPal" on that tab.
   var _origRCT2 = window.renderCustomerTab;
   window.renderCustomerTab = (function (orig) {
     return function (tab, session) {
       orig.apply(this, arguments);
       if (tab !== 'payment') return;
-      // Fix button label — replace "Pay $X.XX Now" text with "Pay Now via PayPal"
+      // Fix button label â€” replace "Pay $X.XX Now" text with "Pay Now via PayPal"
       var el = document.getElementById('cp-content-area-c1');
       if (!el) return;
       el.querySelectorAll('a[href]').forEach(function (a) {
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-// ══ PAYPAL PLAIN-PASTE FIX ══
+// â•â• PAYPAL PLAIN-PASTE FIX â•â•
 (function() {
   document.addEventListener('click', function(e) {
     var t = e.target;
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!url) { if (typeof showToast==='function') showToast('Paste your PayPal invoice URL first.','error'); return; }
       var r = document.getElementById('if-paypal-result');
       if (r) r.innerHTML = '<div style="margin-top:8px;"><a href="'+url+'" target="_blank" style="color:#1B4D2A;word-break:break-all;font-size:13px;">'+url+'</a></div>';
-      if (typeof showToast==='function') showToast('PayPal link ready — save the invoice to keep it.','success');
+      if (typeof showToast==='function') showToast('PayPal link ready â€” save the invoice to keep it.','success');
       return;
     }
     // Invoice detail modal: intercept Generate Link button
@@ -439,297 +439,109 @@ document.addEventListener('DOMContentLoaded', function () {
 
 })();
 
-// == ADMIN APPOINTMENTS PAGE ==
+
+// == ADMIN APPOINTMENTS: FINAL CLEAN VERSION ==
 (function(){
 
-  function renderAdminAppointments(el){
-    if(!el)el=document.getElementById('main-content');
-    if(!el)return;
-
-    var allAppts=(typeof appointments!=='undefined'?appointments:[])
-      .sort(function(a,b){return(a.date+a.time)<(b.date+b.time)?-1:1;});
-
+  // Page renderer — defined globally so it can be called anytime
+  window.renderAdminAppointments = function(el){
+    if(!el) el = document.getElementById('main-content');
+    if(!el) return;
+    var allAppts = (typeof appointments !== 'undefined' ? appointments : [])
+      .sort(function(a,b){ return (a.date+a.time)<(b.date+b.time)?-1:1; });
     function custName(cid){
       var c=(typeof customers!=='undefined'?customers:[]).find(function(x){return x&&x.id===cid;});
       return c?c.name:'Unknown';
     }
-
-    function sBadge(s){
+    function badge(s){
       var m={pending:['Pending','#fef3c7','#d97706'],confirmed:['Confirmed','#dcfce7','#1B4D2A'],
              cancelled:['Cancelled','#fee2e2','#dc2626'],completed:['Completed','#f2f6f2','#5a7a5a']};
       var x=m[s]||m.pending;
       return '<span style="background:'+x[1]+';color:'+x[2]+';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">'+x[0]+'</span>';
     }
-
     function fmtDt(d,t){
       if(!d)return'—';
-      var p=d.split('-'),months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      var s=months[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0];
+      var p=d.split('-'),mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var s=mo[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+', '+p[0];
       if(t){var tp=t.split(':'),h=parseInt(tp[0],10),mn=tp[1],ap=h>=12?'PM':'AM';h=h%12||12;s+=' · '+h+':'+mn+' '+ap;}
       return s;
     }
-
-    // Stats
-    var total=allAppts.length;
-    var pending=allAppts.filter(function(a){return a.status==='pending';}).length;
-    var confirmed=allAppts.filter(function(a){return a.status==='confirmed';}).length;
     var today=new Date().toISOString().slice(0,10);
-    var todayAppts=allAppts.filter(function(a){return a.date===today;}).length;
-
+    var total=allAppts.length;
+    var todayCt=allAppts.filter(function(a){return a.date===today;}).length;
+    var confCt=allAppts.filter(function(a){return a.status==='confirmed';}).length;
+    var pendCt=allAppts.filter(function(a){return a.status==='pending';}).length;
     el.innerHTML=
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">'+
       '<div><h2 style="font-size:20px;font-weight:800;color:#1B4D2A;margin:0;">&#x1F4C5; Appointments</h2>'+
-      '<div style="font-size:13px;color:#5a7a5a;">All scheduled appointments</div></div>'+
-      '<button onclick="openApptModalAdmin(null,null)" style="background:#8DC63F;color:#1B4D2A;border:none;border-radius:10px;'+
-      'padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;">+ New Appointment</button></div>'+
-
-      // Stats row
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">'+
-      '<div class="stat-card" style="text-align:center;padding:16px;">'+
-      '<div style="font-size:26px;font-weight:800;color:#1B4D2A;">'+total+'</div>'+
-      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Total</div></div>'+
-      '<div class="stat-card" style="text-align:center;padding:16px;">'+
-      '<div style="font-size:26px;font-weight:800;color:#F47920;">'+todayAppts+'</div>'+
-      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Today</div></div>'+
-      '<div class="stat-card" style="text-align:center;padding:16px;">'+
-      '<div style="font-size:26px;font-weight:800;color:#8DC63F;">'+confirmed+'</div>'+
-      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Confirmed</div></div>'+
-      '<div class="stat-card" style="text-align:center;padding:16px;">'+
-      '<div style="font-size:26px;font-weight:800;color:#d97706;">'+pending+'</div>'+
-      '<div style="font-size:11px;font-weight:600;color:#5a7a5a;text-transform:uppercase;">Pending</div></div>'+
-      '</div>'+
-
-      // Appointment list
-      (allAppts.length===0?
-        '<div style="text-align:center;padding:60px 20px;color:#5a7a5a;">'+
-        '<div style="font-size:48px;">&#x1F4C5;</div>'+
+      '<p style="font-size:13px;color:#5a7a5a;margin:2px 0 0;">All scheduled appointments</p></div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px;">'+
+      ['<b style="color:#1B4D2A">'+total+'</b><br><small>Total</small>',
+       '<b style="color:#F47920">'+todayCt+'</b><br><small>Today</small>',
+       '<b style="color:#8DC63F">'+confCt+'</b><br><small>Confirmed</small>',
+       '<b style="color:#d97706">'+pendCt+'</b><br><small>Pending</small>'].map(function(h){
+        return '<div class="stat-card" style="text-align:center;padding:16px;font-size:26px;font-weight:800;">'+h+'</div>';
+      }).join('')+'</div>'+
+      (total===0?
+        '<div class="stat-card" style="text-align:center;padding:60px;"><div style="font-size:48px;">&#x1F4C5;</div>'+
         '<p style="font-weight:600;">No appointments yet.</p>'+
-        '<p style="font-size:13px;">Click "+ New Appointment" to schedule one.</p></div>':
+        '<p style="font-size:13px;color:#5a7a5a;">Open a customer record to schedule one.</p></div>' :
         allAppts.map(function(a){
-          var bc=a.status==='confirmed'?'#8DC63F':a.status==='cancelled'?'#dc2626':a.status==='completed'?'#d4e6d4':'#F47920';
+          var bc=a.status==='confirmed'?'#8DC63F':a.status==='cancelled'?'#dc2626':a.status==='completed'?'#5a7a5a':'#F47920';
           var isToday=a.date===today;
           return '<div class="stat-card" style="margin-bottom:10px;border-left:4px solid '+bc+';'+
             (isToday?'background:linear-gradient(135deg,#f8fff8,#f0fdf4);':'')+'">' +
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">'+
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
             '<div style="flex:1;">'+
             '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'+
             '<span style="font-weight:700;font-size:14px;color:#1B4D2A;">'+a.title+'</span>'+
             (isToday?'<span style="background:#8DC63F;color:#1B4D2A;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;">TODAY</span>':'')+
-            sBadge(a.status)+'</div>'+
-            '<div style="font-size:13px;color:#5a7a5a;margin-bottom:3px;">&#x1F464; <strong>'+custName(a.customerId)+'</strong></div>'+
-            '<div style="font-size:13px;color:#5a7a5a;margin-bottom:3px;">&#x1F4C5; '+fmtDt(a.date,a.time)+' &nbsp;·&nbsp; &#x23F1;&#xFE0F; '+a.duration+' min &nbsp;·&nbsp; '+
-            (a.type?a.type.charAt(0).toUpperCase()+a.type.slice(1):'')+'</div>'+
+            badge(a.status)+'</div>'+
+            '<div style="font-size:13px;color:#5a7a5a;margin-bottom:2px;">&#x1F464; <b>'+custName(a.customerId)+'</b></div>'+
+            '<div style="font-size:13px;color:#5a7a5a;margin-bottom:2px;">&#x1F4C5; '+fmtDt(a.date,a.time)+(a.duration?' &middot; &#x23F1; '+a.duration+' min':'')+'</div>'+
             (a.notes?'<div style="font-size:12px;color:#5a7a5a;">&#x1F4DD; '+a.notes+'</div>':'')+
             '<div style="margin-top:6px;">'+
-            (a.customerConfirmed?
-              '<span style="font-size:11px;color:#1B4D2A;font-weight:700;background:#dcfce7;padding:3px 10px;border-radius:20px;">&#x2705; Customer confirmed</span>':
-              '<span style="font-size:11px;color:#d97706;font-weight:600;">&#x23F3; Awaiting customer confirmation</span>')+
+            (a.customerConfirmed?'<span style="font-size:11px;color:#1B4D2A;font-weight:700;background:#dcfce7;padding:3px 10px;border-radius:20px;">&#x2705; Customer confirmed</span>':
+             '<span style="font-size:11px;color:#d97706;">&#x23F3; Awaiting customer confirmation</span>')+
             '</div></div>'+
-            '<div style="display:flex;gap:6px;align-items:flex-start;flex-shrink:0;">'+
-            '<button onclick="openApptModalAdmin(\''+a.customerId+'\',\''+a.id+'\')" '+
+            '<div style="display:flex;gap:6px;flex-shrink:0;">'+
+            '<button onclick="if(typeof openApptModal===\'function\')openApptModal(\''+a.customerId+'\',\''+a.id+'\')" '+
             'style="background:white;border:1px solid #d4e6d4;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;color:#1B4D2A;">Edit</button>'+
-            '<button onclick="delApptAdmin(\''+a.id+'\')" '+
+            '<button onclick="if(!confirm(\'Delete this appointment?\'))return;if(typeof appointments!==\'undefined\')appointments=appointments.filter(function(x){return x.id!==\''+a.id+'\';});if(typeof saveAppointments===\'function\')saveAppointments();window.renderAdminAppointments();" '+
             'style="background:#fee2e2;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;color:#dc2626;">&#x2715;</button>'+
             '</div></div></div>';
         }).join('')
       );
-    window._drawAdminAppts=function(){renderAdminAppointments(el);};
-  }
+  };
 
-  window.openApptModalAdmin=function(custId,apptId){
-    // If custId provided use existing openApptModal, else show customer picker first
-    if(custId){
-      if(typeof openApptModal==='function')openApptModal(custId,apptId);
-      // After save, refresh admin appts view
-      setTimeout(function(){
-        var origSave=document.getElementById('am-save');
-        if(origSave&&!origSave.dataset.adminHooked){
-          origSave.dataset.adminHooked='1';
-          origSave.addEventListener('click',function(){
-            setTimeout(function(){if(window._drawAdminAppts)window._drawAdminAppts();},200);
-          });
-        }
-      },100);
-      return;
+  // Wait until page fully loads so renderView is already defined
+  window.addEventListener('load', function(){
+    // Patch renderView safely
+    var _base = window.renderView;
+    window.renderView = function(v){
+      if(v==='appointments'){ window.renderAdminAppointments(document.getElementById('main-content')); return; }
+      if(_base) _base.call(this, v);
+    };
+
+    // Inject nav item
+    var nav = document.getElementById('nav-links-n4v1');
+    if(nav && !nav.querySelector('[data-view="appointments"]')){
+      var ref = nav.querySelector('[data-view="settings"]');
+      if(ref){
+        var d = document.createElement('div');
+        d.className = 'nav-item';
+        d.setAttribute('data-view','appointments');
+        d.style.cssText = 'display:flex;align-items:center;gap:12px;';
+        d.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Appointments';
+        d.addEventListener('click', function(){
+          currentView = 'appointments';
+          document.querySelectorAll('#nav-links-n4v1 .nav-item').forEach(function(i){ i.classList.remove('active'); });
+          d.classList.add('active');
+          window.renderView('appointments');
+        });
+        nav.insertBefore(d, ref);
+      }
     }
-    // No custId — show customer picker modal
-    var modal=document.getElementById('global-modal');if(!modal)return;
-    var custs=(typeof customers!=='undefined'?customers:[]).filter(function(c){return c&&c.name;});
-    modal.innerHTML='<div style="background:white;border-radius:20px;padding:28px;max-width:380px;width:100%;'+
-      'max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">'+
-      '<h3 style="font-weight:800;font-size:18px;color:#1B4D2A;margin:0;">Select Customer</h3>'+
-      '<button onclick="closeModal()" style="background:#f2f6f2;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;">&#x2715;</button></div>'+
-      (custs.length===0?'<p style="color:#5a7a5a;">No customers yet. Add a customer first.</p>':
-      custs.map(function(c){
-        return '<div onclick="closeModal();openApptModalAdmin(\''+c.id+'\',null);" '+
-          'style="padding:12px 14px;border-radius:10px;border:1px solid #d4e6d4;margin-bottom:8px;cursor:pointer;'+
-          'display:flex;align-items:center;gap:10px;transition:background 0.15s;" '+
-          'onmouseover="this.style.background=\'#f0fdf4\'" onmouseout="this.style.background=\'white\'">'+
-          '<span style="font-size:22px;">&#x1F464;</span>'+
-          '<div><div style="font-weight:700;font-size:14px;color:#1B4D2A;">'+c.name+'</div>'+
-          (c.email?'<div style="font-size:12px;color:#5a7a5a;">'+c.email+'</div>':'')+
-          '</div></div>';
-      }).join(''))+
-      '</div>';
-    modal.style.display='flex';
-  };
-
-  window.delApptAdmin=function(id){
-    if(!confirm('Delete this appointment?'))return;
-    if(typeof appointments!=='undefined')
-      appointments=appointments.filter(function(a){return a.id!==id;});
-    if(typeof saveAppointments==='function')saveAppointments();
-    if(window._drawAdminAppts)window._drawAdminAppts();
-    if(typeof showToast==='function')showToast('Appointment deleted.','success');
-  };
-
-  // Inject into showView
-  var _origSV2=window.showView;
-  window.showView=function(v){
-    if(v==='appointments'){
-      var el=document.getElementById('main-content');
-      if(el)renderAdminAppointments(el);
-      document.querySelectorAll('.nav-item').forEach(function(n){n.classList.toggle('active',n.dataset.view===v);});
-      document.querySelectorAll('.mob-nav-btn').forEach(function(n){n.classList.toggle('active',n.dataset.view===v);});
-      return;
-    }
-    if(_origSV2)_origSV2.call(this,v);
-  };
-
-  // Inject sidebar nav item after Resources
-  document.addEventListener('DOMContentLoaded',function(){
-    setTimeout(function(){
-      var nav=document.querySelector('.sidebar-nav,#sidebar-nav,nav ul,aside ul');
-      if(!nav||nav.querySelector('[data-view="appointments"]'))return;
-      var resLi=nav.querySelector('[data-view="resources"]');
-      var refLi=resLi||nav.querySelector('[data-view="settings"]');
-      if(!refLi)return;
-      var li=document.createElement('li');
-      li.className=refLi.className;
-      li.dataset.view='appointments';
-      li.innerHTML='<span style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;cursor:pointer;" '+
-        'onclick="showView(\'appointments\')">&#x1F4C5; <span>Appointments</span></span>';
-      li.onclick=function(){showView('appointments');};
-      nav.insertBefore(li,resLi?resLi.nextSibling:refLi);
-    },300);
   });
 
-})();
-
-// == APPOINTMENTS NAV INJECTION FIX (retry loop) ==
-(function(){
-  function injectApptNav(){
-    // Try every known sidebar selector
-    var nav=document.querySelector('#nav-links-n4v1')||
-            document.querySelector('.sidebar-nav')||
-            document.querySelector('#sidebar-nav')||
-            document.querySelector('nav ul')||
-            document.querySelector('aside ul');
-    if(!nav)return false;
-    if(nav.querySelector('[data-view="appointments"]'))return true;
-    var refLi=nav.querySelector('[data-view="resources"]')||
-               nav.querySelector('[data-view="alerts"]')||
-               nav.querySelector('[data-view="settings"]');
-    if(!refLi)return false;
-    var li=document.createElement('li');
-    li.className=refLi.className;
-    li.dataset.view='appointments';
-    li.style.cssText=refLi.style.cssText;
-    li.innerHTML='<span style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;cursor:pointer;">'+
-      '&#x1F4C5; <span>Appointments</span></span>';
-    li.addEventListener('click',function(){showView('appointments');});
-    var resources=nav.querySelector('[data-view="resources"]');
-    if(resources&&resources.nextSibling){
-      nav.insertBefore(li,resources.nextSibling);
-    } else {
-      nav.insertBefore(li,refLi);
-    }
-    console.log('[FIXport] Appointments nav injected.');
-    return true;
-  }
-  // Try immediately, then retry every 300ms up to 5 seconds
-  if(!injectApptNav()){
-    var tries=0,iv=setInterval(function(){
-      if(injectApptNav()||++tries>16)clearInterval(iv);
-    },300);
-  }
-})();
-
-// == FIX: hook renderView for appointments + fix nav click ==
-(function(){
-  // Patch renderView (the function admin actually uses)
-  var _origRV=window.renderView;
-  window.renderView=function(view){
-    if(view==='appointments'){
-      var el=document.getElementById('main-content');
-      if(typeof renderAdminAppointments==='function')renderAdminAppointments(el);
-      return;
-    }
-    if(_origRV)_origRV.call(this,view);
-  };
-
-  // Fix the nav item click to use renderView + active state correctly
-  function rewireApptNav(){
-    var item=document.querySelector('[data-view="appointments"]');
-    if(!item||item.dataset.rvwired)return;
-    item.dataset.rvwired='1';
-    // Remove old listeners by cloning
-    var fresh=item.cloneNode(true);
-    fresh.dataset.rvwired='1';
-    fresh.addEventListener('click',function(){
-      document.querySelectorAll('#nav-links-n4v1 .nav-item').forEach(function(n){n.classList.remove('active');});
-      fresh.classList.add('active');
-      currentView='appointments';
-      filterCustomerId=null;
-      renderView('appointments');
-      if(typeof closeMobileSidebar==='function')closeMobileSidebar();
-    });
-    item.parentNode.replaceChild(fresh,item);
-  }
-
-  var tries=0,iv2=setInterval(function(){
-    rewireApptNav();
-    if(++tries>20)clearInterval(iv2);
-  },300);
-})();
-
-// == APPOINTMENTS: CLEAN NAV + RENDERVIEW FIX ==
-(function(){
-  // 1. Patch renderView to handle appointments view
-  var _rv=window.renderView;
-  window.renderView=function(v){
-    if(v==='appointments'){
-      var el=document.getElementById('main-content');
-      if(typeof renderAdminAppointments==='function')renderAdminAppointments(el);
-      return;
-    }
-    if(_rv)return _rv.call(this,v);
-  };
-
-  // 2. Inject nav item as a proper div into #nav-links-n4v1
-  function inject(){
-    var nav=document.getElementById('nav-links-n4v1');
-    if(!nav)return false;
-    if(nav.querySelector('[data-view="appointments"]'))return true;
-    var ref=nav.querySelector('[data-view="settings"]');
-    if(!ref)return false;
-    var d=document.createElement('div');
-    d.className='nav-item';
-    d.setAttribute('data-view','appointments');
-    d.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Appointments';
-    d.addEventListener('click',function(){
-      // Mirror exact pattern from line 822-828 in index.html
-      currentView='appointments';
-      document.querySelectorAll('#nav-links-n4v1 .nav-item').forEach(function(i){i.classList.remove('active');});
-      d.classList.add('active');
-      renderView('appointments');
-    });
-    nav.insertBefore(d,ref);
-    return true;
-  }
-
-  if(!inject()){
-    var t=0,iv=setInterval(function(){if(inject()||++t>20)clearInterval(iv);},300);
-  }
 })();
