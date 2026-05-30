@@ -693,3 +693,43 @@ document.addEventListener('DOMContentLoaded', function () {
     if(++tries>20)clearInterval(iv2);
   },300);
 })();
+
+// == APPOINTMENTS: CLEAN NAV + RENDERVIEW FIX ==
+(function(){
+  // 1. Patch renderView to handle appointments view
+  var _rv=window.renderView;
+  window.renderView=function(v){
+    if(v==='appointments'){
+      var el=document.getElementById('main-content');
+      if(typeof renderAdminAppointments==='function')renderAdminAppointments(el);
+      return;
+    }
+    if(_rv)return _rv.call(this,v);
+  };
+
+  // 2. Inject nav item as a proper div into #nav-links-n4v1
+  function inject(){
+    var nav=document.getElementById('nav-links-n4v1');
+    if(!nav)return false;
+    if(nav.querySelector('[data-view="appointments"]'))return true;
+    var ref=nav.querySelector('[data-view="settings"]');
+    if(!ref)return false;
+    var d=document.createElement('div');
+    d.className='nav-item';
+    d.setAttribute('data-view','appointments');
+    d.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Appointments';
+    d.addEventListener('click',function(){
+      // Mirror exact pattern from line 822-828 in index.html
+      currentView='appointments';
+      document.querySelectorAll('#nav-links-n4v1 .nav-item').forEach(function(i){i.classList.remove('active');});
+      d.classList.add('active');
+      renderView('appointments');
+    });
+    nav.insertBefore(d,ref);
+    return true;
+  }
+
+  if(!inject()){
+    var t=0,iv=setInterval(function(){if(inject()||++t>20)clearInterval(iv);},300);
+  }
+})();
