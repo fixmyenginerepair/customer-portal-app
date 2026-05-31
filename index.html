@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
     tailwind.config = {
       theme: {
         extend: {
@@ -394,29 +396,29 @@ function setSession(data) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(d
 function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
 // ── STORAGE LAYER ──
+if (!firebase.apps.length) {
+  firebase.initializeApp({
+    apiKey: "AIzaSyADX44vd3lodHYX1Nsajj10CSxRfbvIK58",
+    authDomain: "fixmyenginerepair-1c827.firebaseapp.com",
+    projectId: "fixmyenginerepair-1c827",
+    storageBucket: "fixmyenginerepair-1c827.firebasestorage.app",
+    messagingSenderId: "541950034051",
+    appId: "1:541950034051:web:d729437d11d3be36429bb6"
+  });
+}
+var db = firebase.firestore();
+
 var Storage = {
   async get(key, fallback) {
     try {
-      if (window.AppSDK && window.AppSDK.storage) {
-        var val = await window.AppSDK.storage.get(key);
-        if (val !== null && val !== undefined) return val;
-      }
-    } catch(e) {}
-    try {
-      var ls = localStorage.getItem('cp_' + key);
-      if (ls !== null && ls !== undefined) return JSON.parse(ls);
-    } catch(e) {}
-    return fallback;
+      var doc = await db.collection('portalData').doc(key).get();
+      if (doc.exists) { var v = doc.data().value; if (v !== null && v !== undefined) return v; }
+    } catch(e) { console.warn('Firestore get:', e); }
+    return (fallback !== undefined) ? fallback : null;
   },
-  async set(key, val) {
-    try {
-      if (window.AppSDK && window.AppSDK.storage) {
-        await window.AppSDK.storage.set(key, val);
-      }
-    } catch(e) {}
-    try {
-      localStorage.setItem('cp_' + key, JSON.stringify(val));
-    } catch(e) {}
+  async set(key, value) {
+    try { await db.collection('portalData').doc(key).set({ value: value }); }
+    catch(e) { console.warn('Firestore set:', e); }
   }
 };
 
