@@ -9,6 +9,23 @@ document.addEventListener('DOMContentLoaded', function () {
   window.initCustomerPortal = function (session) {
     if (_origInitCP) _origInitCP.call(this, session);
     setTimeout(function () {
+      // Add data persistence notice to customer portal
+      var headerArea = document.querySelector('[class*="header"]') || document.querySelector('.main-area');
+      if (headerArea && !document.getElementById('cp-data-notice')) {
+        var notice = document.createElement('div');
+        notice.id = 'cp-data-notice';
+        notice.style.cssText = 'background:#eff6ff;border-left:3px solid #3b82f6;padding:10px 12px;border-radius:4px;margin-bottom:12px;font-size:12px;color:#1e40af;max-width:90%;margin-left:auto;margin-right:auto;display:none;';
+        notice.innerHTML = '<strong>💾 Note:</strong> Data is stored in your browser. Use Settings → Data Management to export/import data across devices.';
+        
+        // Insert notice after the header or at the beginning of content
+        var contentArea = document.getElementById('cp-content-area-c1') || document.querySelector('.main-area');
+        if (contentArea && contentArea.parentNode) {
+          contentArea.parentNode.insertBefore(notice, contentArea);
+          // Show it occasionally (not too often)
+          if (Math.random() < 0.2) notice.style.display = 'block';
+        }
+      }
+
       var tabBar = document.getElementById('cp-tab-bar-t1');
       if (!tabBar || tabBar.querySelector('[data-ctab="equipment"]')) return;
       var payTab = tabBar.querySelector('[data-ctab="payment"]');
@@ -126,15 +143,18 @@ document.addEventListener('DOMContentLoaded', function () {
       panel.className = 'stat-card';
       panel.style.marginTop = '20px';
       panel.innerHTML =
-        '<h3 style="font-size:15px;font-weight:700;color:var(--text-primary);margin:0 0 6px;">\uD83D\uDCBE Site Backup</h3>' +
+        '<h3 style="font-size:15px;font-weight:700;color:var(--text-primary);margin:0 0 6px;">\uD83D\uDCBE Data Management</h3>' +
+        '<div style="background:#eff6ff;border-left:3px solid #3b82f6;padding:10px 12px;border-radius:4px;margin-bottom:14px;">' +
+        '<p style="font-size:12px;color:#1e40af;margin:0;"><strong>ℹ️ Important:</strong> Your data is stored locally in this browser. It will NOT sync to other browsers or devices automatically.</p>' +
+        '</div>' +
         '<p style="font-size:13px;color:var(--text-muted);margin:0 0 14px;">' +
         'Export all your data to a safe file, or restore from a previous backup.</p>' +
         '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
         '<button onclick="exportSiteData()" style="background:#1B4D2A;color:white;border:none;' +
-        'border-radius:10px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;">' +
+        'border-radius:10px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;flex:1;min-width:120px;">' +
         '\u2B07\uFE0F Export Backup</button>' +
         '<button onclick="importSiteData()" style="background:#f2f6f2;color:#1B4D2A;' +
-        'border:1px solid #d4e6d4;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;">' +
+        'border:1px solid #d4e6d4;border-radius:10px;padding:11px 20px;font-size:13px;font-weight:700;cursor:pointer;flex:1;min-width:120px;">' +
         '\u2B06\uFE0F Import Backup</button>' +
         '</div>';
       el.appendChild(panel);
