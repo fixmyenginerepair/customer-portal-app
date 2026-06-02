@@ -10,6 +10,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
     tailwind.config = {
       theme: {
@@ -407,6 +408,7 @@ if (!firebase.apps.length) {
   });
 }
 var db = firebase.firestore();
+var auth = firebase.auth();
 
 var Storage = {
   async get(key, fallback) {
@@ -708,13 +710,19 @@ function setupLoginEvents() {
     var email = emailEl ? emailEl.value.trim() : '';
     var pw = pwEl ? pwEl.value : '';
     if (!email || !pw) { if (errEl) { errEl.textContent = 'Please enter both email and password.'; errEl.style.display = 'block'; } return; }
-    var customer = customers.find(function(c) { return c && c.email && c.email.toLowerCase() === email.toLowerCase() && c.portalPassword && c.portalPassword === pw; });
-    if (customer) {
-      setSession({ role: 'customer', customerId: customer.id, customerName: customer.name });
-      showAppForSession({ role: 'customer', customerId: customer.id, customerName: customer.name });
-    } else {
+    auth.signInWithEmailAndPassword(email, pw).then(function(cred) {
+      var uid = cred.user.uid;
+      var customer = customers.find(function(c) { return c && c.uid === uid; });
+      if (customer) {
+        setSession({ role: 'customer', customerId: customer.id, customerName: customer.name });
+        showAppForSession({ role: 'customer', customerId: customer.id, customerName: customer.name });
+      } else {
+        if (errEl) { errEl.textContent = 'Account not found. Contact the shop.'; errEl.style.display = 'block'; }
+        auth.signOut();
+      }
+    }).catch(function() {
       if (errEl) { errEl.textContent = 'Invalid email or password. Please try again.'; errEl.style.display = 'block'; }
-    }
+    });
   });
   // Admin login
   var adminBtn = document.getElementById('login-admin-btn-b2');
@@ -722,13 +730,12 @@ function setupLoginEvents() {
     var pwEl = document.getElementById('login-admin-pw-a1');
     var errEl = document.getElementById('login-admin-error-e2');
     var pw = pwEl ? pwEl.value : '';
-    var adminPw = settings.adminPassword || 'Admin123!';
-    if (pw === adminPw) {
+    auth.signInWithEmailAndPassword('fixmyengine.repair@gmail.com', pw).then(function() {
       setSession({ role: 'admin' });
       showAppForSession({ role: 'admin' });
-    } else {
+    }).catch(function() {
       if (errEl) { errEl.textContent = 'Invalid admin password.'; errEl.style.display = 'block'; }
-    }
+    });
   });
 }
 
