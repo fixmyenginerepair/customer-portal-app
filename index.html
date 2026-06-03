@@ -716,9 +716,10 @@ function setupLoginEvents() {
     if (!email || !pw) { if (errEl) { errEl.textContent = 'Please enter both email and password.'; errEl.style.display = 'block'; } return; }
     auth.signInWithEmailAndPassword(email, pw).then(function(cred) {
       var uid = cred.user.uid;
-      return loadPortalData().then(function() {
-        var customer = customers.find(function(c) { return c && c.uid === uid; });
-        if (!customer) { customer = customers.find(function(c) { return c && (c.email || '').toLowerCase() === email.toLowerCase(); }); }
+      return db.collection('portalData').doc('customers').get().then(function(doc) {
+        var allCustomers = (doc.data() || {}).value || [];
+        var customer = allCustomers.find(function(c) { return c && c.uid === uid; });
+        if (!customer) { customer = allCustomers.find(function(c) { return c && (c.email || '').toLowerCase() === email.toLowerCase(); }); }
         if (customer) {
           setSession({ role: 'customer', customerId: customer.id, customerName: customer.name });
           showAppForSession({ role: 'customer', customerId: customer.id, customerName: customer.name });
@@ -727,8 +728,10 @@ function setupLoginEvents() {
           auth.signOut();
         }
       });
-    }).catch(function() {
-      if (errEl) { errEl.textContent = 'Invalid email or password. Please try again.'; errEl.style.display = 'block'; }
+    }).catch(function(err) {
+      var isAuthErr = err && (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email');
+      var msg = isAuthErr ? 'Invalid email or password. Please try again.' : 'Login error: ' + (err && err.message ? err.message : String(err));
+      if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
     });
   });
   // Forgot password
